@@ -1,11 +1,47 @@
 <template>
-    <div>
+    <div class="main-container">
         <div class="crumbs">
             <el-breadcrumb separator="/">
                 <el-breadcrumb-item>
-                    <i class="el-icon-lx-cascades"></i> 基础表格
+                    <i class="el-icon-lx-cascades"></i> 项目管理
                 </el-breadcrumb-item>
+                <el-breadcrumb-item>项目列表</el-breadcrumb-item>
             </el-breadcrumb>
+        </div>
+        <div class="project-preview">
+            <el-card class="box-card">
+                <div class="project-preview-body">
+                    <el-row type="flex" :gutter="20">
+                        <el-col :xs="8" :sm="8" :md="8" :lg="8" :xl="8">
+                            <div class="project-dashboard">
+                                <span class="project-title">总的任务</span>
+                                <span class="project-body">{{totalProject}}个任务</span>
+                            </div>
+                        </el-col>
+                        <el-divider direction="vertical"></el-divider>
+                        <el-col :xs="8" :sm="8" :md="8" :lg="8" :xl="8">
+                            <div class="project-dashboard">
+                                <span class="project-title">进行中的项目</span>
+                                <span class="project-body">{{processingProject}}个任务</span>
+                            </div>
+                        </el-col>
+                        <el-divider direction="vertical"></el-divider>
+                        <el-col :xs="8" :sm="8" :md="8" :lg="8" :xl="8">
+                            <div class="project-dashboard">
+                                <span class="project-title">已完成的项目</span>
+                                <span class="project-body">{{completedProject}}个任务</span>
+                            </div>
+                        </el-col>
+                        <el-divider direction="vertical"></el-divider>
+                        <el-col :xs="8" :sm="8" :md="8" :lg="8" :xl="8">
+                            <div class="project-dashboard">
+                                <span class="project-title">延期的项目</span>
+                                <span class="project-body">{{delayProject}}个任务</span>
+                            </div>
+                        </el-col>
+                    </el-row>
+                </div>
+            </el-card>
         </div>
         <div class="container">
             <div class="handle-box">
@@ -31,36 +67,37 @@
                     @selection-change="handleSelectionChange"
             >
                 <el-table-column type="selection" width="55" align="center"></el-table-column>
+                <!--                <el-table-column label="头像(查看大图)" align="center">-->
+                <!--                    <template #default="scope">-->
+                <!--                        <el-image-->
+                <!--                                class="table-td-thumb"-->
+                <!--                                :src="scope.row.thumb"-->
+                <!--                                :preview-src-list="[scope.row.thumb]"-->
+                <!--                        ></el-image>-->
+                <!--                    </template>-->
+                <!--                </el-table-column>-->
                 <el-table-column prop="id" label="ID" width="55" align="center"></el-table-column>
-                <el-table-column prop="name" label="用户名"></el-table-column>
-                <el-table-column label="账户余额">
-                    <template #default="scope">￥{{ scope.row.money }}</template>
+                <el-table-column prop="name" label="项目名称"></el-table-column>
+                <el-table-column prop="description" label="项目描述">
+<!--                    <template #default="scope">￥{{ scope.row.money }}</template>-->
                 </el-table-column>
-                <el-table-column label="头像(查看大图)" align="center">
-                    <template #default="scope">
-                        <el-image
-                                class="table-td-thumb"
-                                :src="scope.row.thumb"
-                                :preview-src-list="[scope.row.thumb]"
-                        ></el-image>
-                    </template>
+                <el-table-column prop="projectCreator" label="创建者">
                 </el-table-column>
-                <el-table-column prop="address" label="地址"></el-table-column>
+                <el-table-column prop="projectManager" label="项目经理"></el-table-column>
+                <el-table-column prop="startDatetime" label="开始时间"></el-table-column>
+                <el-table-column prop="endDatetime" label="结束时间"></el-table-column>
                 <el-table-column label="状态" align="center">
                     <template #default="scope">
                         <el-tag
                                 :type="
-                                scope.row.state === '成功'
-                                    ? 'success'
-                                    : scope.row.state === '失败'
-                                    ? 'danger'
-                                    : ''
-                            "
-                        >{{ scope.row.state }}</el-tag>
+                                scope.row.projectStatus === 1 ? 'primary' : scope.row.projectStatus === '2' ? 'info':
+                                 scope.row.projectStatus === 3 ? 'success': scope.row.projectStatus === 4 ? 'danger': ''"
+                        >{{ scope.row.projectStatus === 1 ? "未开始" : scope.row.projectStatus === 2 ? "进行中"
+                            : scope.row.projectStatus === 3 ? "已完成" : scope.row.projectStatus === 4 ? "已延期" : ""}}</el-tag>
                     </template>
                 </el-table-column>
 
-                <el-table-column prop="date" label="注册时间"></el-table-column>
+
                 <el-table-column label="操作" width="180" align="center">
                     <template #default="scope">
                         <el-button
@@ -110,14 +147,16 @@
 </template>
 
 <script>
-    import { fetchData } from "../../../api/index";
+    import {getProjects} from "../../../api";
     export default {
         name: "ProjectList",
         data() {
             return {
+                totalProject: '',
+                processingProject: '',
+                completedProject: '',
+                delayProject: '',
                 query: {
-                    address: "",
-                    name: "",
                     pageIndex: 1,
                     pageSize: 10
                 },
@@ -132,21 +171,14 @@
             };
         },
         created() {
-            this.getData();
+            this.getProjects(this.query.pageIndex, this.query.pageSize);
+            // this.getData();
             console.log("basetable")
         },
         activated() {
             console.log("basewwwwwwtable")
         },
         methods: {
-            // 获取 easy-mock 的模拟数据
-            getData() {
-                fetchData(this.query).then(res => {
-                    console.log(res);
-                    this.tableData = res.list;
-                    this.pageTotal = res.pageTotal || 50;
-                });
-            },
             // 触发搜索按钮
             handleSearch() {
                 this.$set(this.query, "pageIndex", 1);
@@ -193,13 +225,24 @@
             // 分页导航
             handlePageChange(val) {
                 this.$set(this.query, "pageIndex", val);
-                this.getData();
+                this.getProjects(val, this.query.pageSize)
+            },
+            getProjects(pageIndex, pageSize) {
+                var that = this;
+                getProjects(pageIndex, pageSize).then(res => {
+                    that.totalProject = res.data.totalProject;
+                    that.processingProject = res.data.processingProject;
+                    that.completedProject = res.data.completedProject;
+                    that.delayProject = res.data.delayProject;
+                    that.tableData = res.data.projectPageVOPageInfo.list;
+                    that.pageTotal = res.data.totalProject
+                })
             }
         }
     };
 </script>
 
-<style scoped>
+<style scoped lang="scss">
     .handle-box {
         margin-bottom: 20px;
     }
@@ -228,4 +271,50 @@
         width: 40px;
         height: 40px;
     }
+    .main-container {
+        width: 100%;
+    }
+    .container {
+
+    }
+
+    .project-preview {
+        margin-top: 15px;
+        margin-bottom: 15px;
+       .box-card {
+           .el-row {
+               .el-divider {
+                   height: auto;
+               }
+               .el-col {
+                   .project-dashboard {
+                       width: 100%;
+                       display: flex;
+                       flex-direction: column;
+                       align-items: center;
+                       align-content: center;
+                       justify-self: center;
+
+                       .project-title {
+                           font-size: 14px;
+                           width: 100%;
+                           text-align: center;
+                           align-content: center;
+                           color: #988e8e;
+                           font-weight: 600;
+                       }
+                       .project-body {
+                           margin-top: 15px;
+                           width: 100%;
+                           font-size: 16px;
+                           font-weight: 700;
+                           align-content: center;
+                           text-align: center;
+                       }
+                   }
+               }
+           }
+       }
+    }
+
 </style>

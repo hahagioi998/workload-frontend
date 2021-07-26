@@ -83,6 +83,10 @@ export default {
                     title: "工时统计",
                     subs: [
                         {
+                            index: "record-workload",
+                            title: '工作记录',
+                        },
+                        {
                             // index 是 route 的 path
                             index: "project-workload-list",
                             title: "项目工时统计"
@@ -106,6 +110,10 @@ export default {
                         {
                             index: "new-employee",
                             title: "新增员工"
+                        },
+                        {
+                            index: "new-work-role",
+                            title: "新增工作角色"
                         },
                     ]
                 },

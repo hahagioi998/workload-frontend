@@ -10,6 +10,40 @@ const routes = [
         path: '/',
         name: 'Home',
         component: Home,
+        children: [
+            {
+                path: "/all-projects",
+                name: "AllProjects",
+                meta: {
+                    title: '全部项目'
+                },
+                component: () => import ("../views/workload/pages/AllProjects")
+            },
+            {
+                path: "/my-projects",
+                name: "MyProjects",
+                meta: {
+                    title: '我的项目'
+                },
+                component: () => import ("../views/workload/pages/MyProjects")
+            },
+            {
+                path: "/project-detail",
+                name: "ProjectDetail",
+                meta: {
+                    title: '项目详情'
+                },
+                component: () => import ("../views/workload/pages/ProjectDetail")
+            },
+            {
+                path: "/project-workload",
+                name: "ProjectWorkload",
+                meta: {
+                    title: '项目工时录入'
+                },
+                component: () => import ("../views/workload/pages/Workload")
+            }
+        ]
     },
     {
         path: '/admin/',
@@ -40,7 +74,15 @@ const routes = [
                     title: '新建项目'
                 },
                 component: () => import ("../views/admin/pages/NewProject")
-            }, {
+            },{
+                path: "/record-workload",
+                name: "RecordWorkload",
+                meta: {
+                    title: '项目工时列表'
+                },
+                component: () => import ("../views/admin/pages/RecordWorkload")
+            },
+            {
                 path: "/project-workload-list",
                 name: "ProjectWorkloadList",
                 meta: {
@@ -68,6 +110,13 @@ const routes = [
                     title: '新建项目'
                 },
                 component: () => import ("../views/admin/pages/NewEmployee")
+            }, {
+                path: "/new-work-role",
+                name: "NewWorkRole",
+                meta: {
+                    title: '新建用户工作角色'
+                },
+                component: () => import ("../views/admin/pages/NewWorkRole")
             }
 
         ]
