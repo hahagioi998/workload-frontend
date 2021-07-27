@@ -40,7 +40,7 @@
                             :label='item + "日"'>
                         <template slot-scope="scope">
                             <div v-for='(userWork, monthIndex) in scope.row.userMonthWorkload'
-                                 :class="userWork.workTime >= 7.5 ? 'completed' : 'uncompleted'"
+                                 :class="Number(userWork.workloadTime) >= 7.5 ? 'completed' : 'uncompleted'"
                                  :key="monthIndex">
                                 {{userWork.workloadDate.split("-")[2] == item ? userWork.workloadTime : ""}}
                             </div>

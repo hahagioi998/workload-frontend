@@ -1,12 +1,5 @@
 <template>
     <div>
-        <div class="crumbs">
-            <el-breadcrumb separator="/">
-                <el-breadcrumb-item>
-                    <i class="el-icon-lx-cascades"></i> 基础表格
-                </el-breadcrumb-item>
-            </el-breadcrumb>
-        </div>
         <div class="container">
             <div class="date-box">
                 <div class="block">
@@ -40,9 +33,10 @@
                     <el-table-column
                             label="项目"
                             width="180">
-                        <template scope="scope">
-<!--                            <div>{{scope.row.project}}</div>-->
-                            <el-select v-model="scope.row.project" placeholder="请选择">
+                        <template slot-scope="scope" >
+                            <el-select v-model="scope.row.projectId"
+                                       :disabled="scope.row.projectName === '无项目'"
+                                       placeholder="请选择">
                                 <el-option
                                         v-for="item in projects"
                                         :key="item.id"
@@ -51,15 +45,7 @@
                                 </el-option>
                             </el-select>
                         </template>
-<!--                        <template scope="scope.row.project">-->
-<!--                            <el-table-column>-->
-<!--                                -->
 
-<!--                            </el-table-column>-->
-<!--                            <div>{{scope.row.project}}</div>-->
-
-<!--&lt;!&ndash;                            <el-input v-model="scope.row.projectName"></el-input>&ndash;&gt;-->
-<!--                        </template>-->
                     </el-table-column>
                     <el-table-column
                             label="投入工作量汇总"
@@ -96,7 +82,7 @@
                             <el-button
                                     type="text"
                                     icon="el-icon-circle-plus-outline"
-                                    @click="handleAdd(scope.$index, scope.row)"
+                                    @click="handlerAddEmptyRecord(scope.$index, scope.row)"
                             >添加项目</el-button>
                             <el-button
                                     type="text"
@@ -108,43 +94,15 @@
                     </el-table-column>
                 </el-table>
             </div>
-
-            <div class="pagination">
-                <el-pagination
-                        background
-                        layout="total, prev, pager, next"
-                        :current-page="query.pageIndex"
-                        :page-size="query.pageSize"
-                        :total="pageTotal"
-                        @current-change="handlePageChange"
-                ></el-pagination>
-            </div>
         </div>
 
-        <!-- 编辑弹出框 -->
-<!--        <el-dialog title="编辑" v-model="editVisible" width="30%">-->
-<!--            <el-form ref="form" :model="form" label-width="70px">-->
-<!--                <el-form-item label="用户名">-->
-<!--                    <el-input v-model="form.name"></el-input>-->
-<!--                </el-form-item>-->
-<!--                <el-form-item label="地址">-->
-<!--                    <el-input v-model="form.address"></el-input>-->
-<!--                </el-form-item>-->
-<!--            </el-form>-->
-<!--            <template #footer>-->
-<!--                <span class="dialog-footer">-->
-<!--                    <el-button @click="editVisible = false">取 消</el-button>-->
-<!--                    <el-button type="primary" @click="saveEdit">确 定</el-button>-->
-<!--                </span>-->
-<!--            </template>-->
-<!--        </el-dialog>-->
     </div>
 </template>
 
 <script>
     import * as dayjs from 'dayjs'
     import service from "../../../utils/request";
-    import {getProjects} from "../../../api";
+    import {BASE_URL, getEarlyData, getProjects} from "../../../api";
 
     export default {
         name: "ProjectWorkloadList",
@@ -178,7 +136,8 @@
                 }],
                 tableData: [{
                     id: 1,
-                    project: '',
+                    projectId: '',
+                    projectName: '无项目',
                     days: '',
                     hours: '',
                     week: [
@@ -213,32 +172,27 @@
                         }]
                 }],
                 projects: [],
-                query: {
-                    address: "",
-                    name: "",
-                    pageIndex: 1,
-                    pageSize: 10
-                },
-                editVisible: false,
-                pageTotal: 0,
             };
         },
         created() {
             this.weekValue = new Date();
             this.changeDate();
             this.getAllProject();
+            this.getOriginData();
         },
         activated() {
             this.weekValue = new Date();
             this.changeDate();
             this.getAllProject();
+            this.getOriginData();
         },
         methods: {
             // 编辑操作
-            handleAdd() {
+            handlerAddEmptyRecord(projectId, projectName) {
                 var newTableData =  {
                     id: '',
-                    project: '',
+                    projectId: projectId || '',
+                    projectName: projectName || '',
                     days: '',
                     hours: '',
                     week: [
@@ -286,11 +240,11 @@
                 // 从tableData中筛选该天的数据，提交至数据库
                 for (var i = 0; i < this.tableData.length; i++) {
                     for (var j = 0; j < this.tableData[i].week.length; j++) {
-                        // console.log(new Date(this.getNowFormatDate()) === new Date(this.tableData[i].week[j].date))
-                        // console.log(this.getNowFormatDate() === this.tableData[i].week[j].date)
                         if (this.getNowFormatDate() === this.tableData[i].week[j].date) {
                             var data = {
-                                projectId: this.tableData[i].project,
+                                // 虚拟数据，表示当前用户userid为1，需根据实际情况获取用户id
+                                userid: "1",
+                                projectId: this.tableData[i].projectId,
                                 date: this.tableData[i].week[j].date,
                                 workTime: this.tableData[i].week[j].workTime
                             }
@@ -300,8 +254,7 @@
                 }
 
                 if (this.getNowFormatDate() === requestData[0].date) {
-                    console.log("sss")
-                    service.post('http://localhost:8999/api/record', requestData).then(res => {
+                    service.post(BASE_URL + '/record', requestData).then(res => {
                         console.log(res)
                         this.$message.success('仅能提交当前的数据');
                     })
@@ -309,23 +262,17 @@
                     this.$message.warning('仅能提交当前的数据');
                 }
             },
-            // 分页导航
-            handlePageChange(val) {
-                this.$set(this.query, "pageIndex", val);
-                this.getData();
-            },
             changeDate(){
-                this.startDate = dayjs(this.weekValue).startOf('week').format('YYYY-MM-DD');
-                this.endDate = dayjs(this.weekValue).endOf('week').format('YYYY-MM-DD');
+                console.log(this.weekValue)
+                this.startDate = dayjs(this.weekValue).startOf('week').add(1, 'day').format('YYYY-MM-DD');
+                this.endDate = dayjs(this.weekValue).endOf('week').add(1, 'day').format('YYYY-MM-DD');
                 for (var i = 0; i < 7; i++) {
-                    this.dayOfWeek[i].date = dayjs(this.startDate).add(i+1, 'day').format('YYYY-MM-DD');
-                    this.tableData[0].week[i].date = dayjs(this.startDate).add(i+1, 'day').format('YYYY-MM-DD');
+                    this.dayOfWeek[i].date = dayjs(this.startDate).add(i, 'day').format('YYYY-MM-DD');
+                    this.tableData[0].week[i].date = dayjs(this.startDate).add(i, 'day').format('YYYY-MM-DD');
                 }
             },
-            summaryWorkload() {
-
-            },
             onWorkTimeInput(index, row) {
+                console.log(row)
                 var sumHours = 0;
                 var sumDays = 0;
                 for (var i = 0; i < row.week.length; i++) {
@@ -336,9 +283,56 @@
                 row.days = sumDays;
             },
             getAllProject() {
+                var that = this;
                 getProjects().then(res => {
-                    this.projects = res.data;
+                    that.projects = res.data;
+                    if (that.projects != null) {
+                        var project = that.projects.find(item => {
+                            return item.name === '无项目'
+                        });
+                        that.tableData[0].projectId = project.id;
+                    }
                 })
+            },
+            getOriginData() {
+                var that = this;
+                this.changeDate();
+                var userid = "1";
+                // var sumHours = 0;
+                // var sumDays = 0;
+                getEarlyData(this.startDate, this.endDate, userid).then(res => {
+                    if (res.data !== []) {
+                        var projectList = res.data;
+                        for (var i = 0; i < projectList.length; i++) {
+                            if (projectList[i].projectId != that.tableData[0].projectId) {
+                                // 添加新的行数
+                                that.handlerAddEmptyRecord(projectList[i].projectId, projectList[i].projectName);
+                            }
+                            // 为每行元素赋值
+                            for (var j = 0; j < that.tableData.length; j++) {
+                                if (projectList[i].projectId == that.tableData[j].projectId) {
+                                    for (var w = 0; w < that.tableData[j].week.length; w++) {
+                                        if (that.tableData[j].week[w].date == projectList[i].workloadDate) {
+                                            that.tableData[j].week[w].workTime = projectList[i].workloadTime;
+
+                                        }
+                                    }
+                                }
+                                that.onWorkTimeInput('',that.tableData[j])
+                            }
+                        }
+                        console.log(that.tableData)
+                    }
+                })
+            },
+            uniqueArrays( arr ){
+                var result = [];
+                for(var i=0,len=arr.length;i<len;i++){
+                    if( !result.includes( arr[i] ) ){      // 检索arr1中是否含有arr中的值
+                        result.push(arr[i]);
+                    }
+                }
+                return result;
             },
             getNowFormatDate() {
                 var date = new Date();

@@ -8,20 +8,7 @@ export const fetchData = query => {
     });
 };
 
-// 前台页面的接口
-
-/**
- * 分页查询文章列表
- * @param pageIndex
- * @param pageSize
- * @returns {AxiosPromise}
- */
-// export const getArticles = (pageIndex, pageSize) => {
-//     return request({
-//         url: "http://localhost:8090/api/admin/article/get/articles?pageIndex=" + pageIndex + "&pageSize=" + pageSize,
-//         method: "GET"
-//     });
-// };
+export const BASE_URL = "http://localhost:8999/api";
 
 /**
  * 查询所有用户
@@ -43,9 +30,16 @@ export const getAllUser = () => {
  */
 export const getProjects = () => {
     return request({
-        url: "http://localhost:8999/api/project/list"
+        url: BASE_URL + "/project/list"
     });
 };
+
+
+export const getEarlyData = (startDate, endDate, userid) => {
+    return request({
+        url: BASE_URL + "/early-data?startDate=" + startDate + "&endDate=" + endDate + "&userid=" + userid
+    })
+}
 
 export const getRoles = () => {
     return request({
