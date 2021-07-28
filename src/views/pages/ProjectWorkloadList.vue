@@ -78,8 +78,9 @@
 </template>
 
 <script>
-    import service from "../../../utils/request";
+    import service from "../../utils/request";
     import * as dayjs from 'dayjs'
+    import {BASE_URL} from "../../api";
     export default {
         name: "ProjectWorkloadList",
         data() {
@@ -100,7 +101,7 @@
             // 获取 easy-mock 的模拟数据
             getData() {
                 var that = this;
-                service.get("http://localhost:8999/api/admin/count/project?year=" + this.yearValue).then(res => {
+                service.get(BASE_URL + "/admin/count/project?year=" + this.yearValue).then(res => {
                     that.tableData = res.data;
                     for(var i = 0; i < res.data.length; i++) {
                         that.tableData[i].projectId = res.data[i].projectId;

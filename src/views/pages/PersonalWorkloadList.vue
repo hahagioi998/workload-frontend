@@ -54,9 +54,10 @@
 
 <script>
     import * as dayjs from 'dayjs'
-    import service from "../../../utils/request";
+    import service from "../../utils/request";
+    import {BASE_URL} from "../../api";
     export default {
-        name: "ProjectWorkloadList",
+        name: "PersonalWorkloadList",
         data() {
             return {
                 monthValue: dayjs(new Date()).format("YYYY-MM"),
@@ -74,7 +75,7 @@
             // 获取 easy-mock 的模拟数据
             getData() {
                 var that = this;
-                service.get("http://localhost:8999/api/admin/count/user?date=" + this.monthValue).then(res => {
+                service.get(BASE_URL + "/admin/count/user?date=" + this.monthValue).then(res => {
                     that.tableData = res.data;
                 })
             },
@@ -97,28 +98,28 @@
         background-color: rgb(255, 255, 0);
     }
 
-    .handle-select {
-        width: 120px;
-    }
+    /*.handle-select {*/
+    /*    width: 120px;*/
+    /*}*/
 
-    .handle-input {
-        width: 300px;
-        display: inline-block;
-    }
-    .table {
-        width: 100%;
-        font-size: 14px;
-    }
-    .red {
-        color: #ff0000;
-    }
-    .mr10 {
-        margin-right: 10px;
-    }
-    .table-td-thumb {
-        display: block;
-        margin: auto;
-        width: 40px;
-        height: 40px;
-    }
+    /*.handle-input {*/
+    /*    width: 300px;*/
+    /*    display: inline-block;*/
+    /*}*/
+    /*.table {*/
+    /*    width: 100%;*/
+    /*    font-size: 14px;*/
+    /*}*/
+    /*.red {*/
+    /*    color: #ff0000;*/
+    /*}*/
+    /*.mr10 {*/
+    /*    margin-right: 10px;*/
+    /*}*/
+    /*.table-td-thumb {*/
+    /*    display: block;*/
+    /*    margin: auto;*/
+    /*    width: 40px;*/
+    /*    height: 40px;*/
+    /*}*/
 </style>

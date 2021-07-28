@@ -5,7 +5,7 @@
                 <div class="block">
                     <el-date-picker
                             v-model="weekValue"
-                            :format='startDate + "至" + endDate + " 第WW周"'
+                            :format='this.startDate + "至" + endDate + " 第WW周"'
                             type="week"
                             @change="changeDate"
                             :picker-options="{'firstDayOfWeek': 1}"
@@ -101,11 +101,11 @@
 
 <script>
     import * as dayjs from 'dayjs'
-    import service from "../../../utils/request";
-    import {BASE_URL, getEarlyData, getProjects} from "../../../api";
+    import service from "../../utils/request";
+    import {BASE_URL, getEarlyData, getProjects} from "../../api";
 
     export default {
-        name: "ProjectWorkloadList",
+        name: "RecordWorkload",
         data() {
             return {
                 weekValue: '',
@@ -178,13 +178,11 @@
             this.weekValue = new Date();
             this.changeDate();
             this.getAllProject();
-            this.getOriginData();
         },
         activated() {
             this.weekValue = new Date();
             this.changeDate();
             this.getAllProject();
-            this.getOriginData();
         },
         methods: {
             // 编辑操作
@@ -227,52 +225,45 @@
                         }]
                 };
                 newTableData.id = this.tableData[this.tableData.length-1].id + 1;
-                this.startDate = dayjs(this.weekValue).startOf('week').format('YYYY-MM-DD');
+                this.startDate = dayjs(this.weekValue).startOf('week').add(1, 'day').format('YYYY-MM-DD');
                 for (var i = 0; i < 7; i++) {
-                    newTableData.week[i].date = dayjs(this.startDate).add(i+1, 'day').format('YYYY-MM-DD');
+                    newTableData.week[i].date = dayjs(this.startDate).add(i, 'day').format('YYYY-MM-DD');
                 }
                 this.tableData.push(newTableData);
             },
             // 保存编辑
-            handlerSave() {
-                console.log(this.tableData)
+            handlerSave(index, row) {
+                var that = this;
                 var requestData = [];
                 // 从tableData中筛选该天的数据，提交至数据库
-                for (var i = 0; i < this.tableData.length; i++) {
-                    for (var j = 0; j < this.tableData[i].week.length; j++) {
-                        if (this.getNowFormatDate() === this.tableData[i].week[j].date) {
-                            var data = {
-                                // 虚拟数据，表示当前用户userid为1，需根据实际情况获取用户id
-                                userid: "1",
-                                projectId: this.tableData[i].projectId,
-                                date: this.tableData[i].week[j].date,
-                                workTime: this.tableData[i].week[j].workTime
-                            }
-                            requestData.push(data)
+                for (var i = 0; i < row.week.length; i++) {
+                    if (this.getNowFormatDate() === row.week[i].date) {
+                        var data = {
+                            // 从路由获取用户id
+                            userid: that.$route.query.userid,
+                            projectId: row.projectId,
+                            date: row.week[i].date,
+                            workTime: row.week[i].workTime
                         }
+                        requestData.push(data)
                     }
                 }
-
-                if (this.getNowFormatDate() === requestData[0].date) {
-                    service.post(BASE_URL + '/record', requestData).then(res => {
-                        console.log(res)
-                        this.$message.success('仅能提交当前的数据');
-                    })
-                } else {
-                    this.$message.warning('仅能提交当前的数据');
-                }
+                service.post(BASE_URL + '/record', requestData).then(res => {
+                    this.$message.success('提交成功', res.code);
+                })
             },
             changeDate(){
-                console.log(this.weekValue)
                 this.startDate = dayjs(this.weekValue).startOf('week').add(1, 'day').format('YYYY-MM-DD');
                 this.endDate = dayjs(this.weekValue).endOf('week').add(1, 'day').format('YYYY-MM-DD');
+
                 for (var i = 0; i < 7; i++) {
                     this.dayOfWeek[i].date = dayjs(this.startDate).add(i, 'day').format('YYYY-MM-DD');
                     this.tableData[0].week[i].date = dayjs(this.startDate).add(i, 'day').format('YYYY-MM-DD');
                 }
+                this.getOriginData();
             },
+            // 计算工作时间
             onWorkTimeInput(index, row) {
-                console.log(row)
                 var sumHours = 0;
                 var sumDays = 0;
                 for (var i = 0; i < row.week.length; i++) {
@@ -296,34 +287,106 @@
             },
             getOriginData() {
                 var that = this;
-                this.changeDate();
-                var userid = "1";
-                // var sumHours = 0;
-                // var sumDays = 0;
-                getEarlyData(this.startDate, this.endDate, userid).then(res => {
-                    if (res.data !== []) {
-                        var projectList = res.data;
-                        for (var i = 0; i < projectList.length; i++) {
-                            if (projectList[i].projectId != that.tableData[0].projectId) {
-                                // 添加新的行数
-                                that.handlerAddEmptyRecord(projectList[i].projectId, projectList[i].projectName);
+                // this.changeDate();
+                var userid = this.$route.query.userid;
+                this.$nextTick(function () {
+                    getEarlyData(this.startDate, this.endDate, userid).then(res => {
+                        if (res.data.length !== 0) {
+                            var projectList = res.data;
+                            var diffData = that.getDiffData(that.tableData, projectList);
+                            var diffProject = projectList.filter((item) => {
+                                return that.isInArray(diffData, item.projectId)
+                            })
+                            var needAddProject = [];
+                            diffProject.forEach((item) => {
+                                var project = {
+                                    projectId: item.projectId,
+                                    projectName: item.projectName
+                                }
+                                needAddProject.push(project)
+                            })
+                            var resultProject = that.uniqueProjectArrays(needAddProject);
+                            for (var t = 0; t < resultProject.length; t++) {
+                                that.handlerAddEmptyRecord(resultProject[t].projectId, resultProject[t].projectName);
                             }
-                            // 为每行元素赋值
-                            for (var j = 0; j < that.tableData.length; j++) {
-                                if (projectList[i].projectId == that.tableData[j].projectId) {
-                                    for (var w = 0; w < that.tableData[j].week.length; w++) {
-                                        if (that.tableData[j].week[w].date == projectList[i].workloadDate) {
-                                            that.tableData[j].week[w].workTime = projectList[i].workloadTime;
-
+                            for (var i = 0; i < projectList.length; i++) {
+                                // 为每行元素赋值
+                                for (var j = 0; j < that.tableData.length; j++) {
+                                    if (projectList[i].projectId == that.tableData[j].projectId) {
+                                        for (var w = 0; w < that.tableData[j].week.length; w++) {
+                                            if (that.tableData[j].week[w].date == projectList[i].workloadDate) {
+                                                that.tableData[j].week[w].workTime = projectList[i].workloadTime;
+                                            }
                                         }
                                     }
+                                    that.onWorkTimeInput('',that.tableData[j])
                                 }
-                                that.onWorkTimeInput('',that.tableData[j])
                             }
+                        } else {
+                            that.tableData = [{
+                                id: 1,
+                                projectId: '',
+                                projectName: '无项目',
+                                days: '',
+                                hours: '',
+                                week: [
+                                    {
+                                        day: '一',
+                                        date: '',
+                                        workTime: '',
+                                    }, {
+                                        day: '二',
+                                        date: '',
+                                        workTime: '',
+                                    }, {
+                                        day: '三',
+                                        date: '',
+                                        workTime: '',
+                                    }, {
+                                        day: '四',
+                                        date: '',
+                                        workTime: '',
+                                    }, {
+                                        day: '五',
+                                        date: '',
+                                        workTime: '',
+                                    }, {
+                                        day: '六',
+                                        date: '',
+                                        workTime: '',
+                                    }, {
+                                        day: '日',
+                                        date: '',
+                                        workTime: '',
+                                    }]
+                            }];
+                            that.getAllProject();
                         }
                         console.log(that.tableData)
-                    }
+                    })
                 })
+
+            },
+            isInArray(arr,value) {
+                for (var i = 0; i < arr.length; i++) {
+                    if (value === arr[i]) {
+                        return true;
+                    }
+                }
+                return false;
+            },
+            getDiffData(tableData, projectList) {
+                var originTableData = [];
+                var originProjectList = [];
+                console.log(tableData)
+                tableData.forEach((item, index) => {
+                    originTableData[index] = item.projectId
+                });
+
+                projectList.forEach((item, index) => {
+                    originProjectList[index] = item.projectId
+                })
+                return this.getDiffElement(originTableData, this.uniqueArrays(originProjectList));
             },
             uniqueArrays( arr ){
                 var result = [];
@@ -333,6 +396,22 @@
                     }
                 }
                 return result;
+            },
+            uniqueProjectArrays(arr) {
+                var result = [];
+                var obj = {};
+                for(var i =0; i<arr.length; i++){
+                    if(!obj[arr[i].projectId]){
+                        result.push(arr[i]);
+                        obj[arr[i].projectId] = true;
+                    }
+                }
+                return  result;
+            },
+            getDiffElement(arr1, arr2) {
+                return arr1.concat(arr2).filter((value,index,arr)=>{
+                    return arr.indexOf(value) == arr.lastIndexOf(value);
+                })
             },
             getNowFormatDate() {
                 var date = new Date();

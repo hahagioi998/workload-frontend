@@ -9,6 +9,6 @@
 </script>
 
 <style>
-  @import "./views/admin/assets/css/main.css";
-  @import "./views/admin/assets/css/color-dark.css";
+  @import "views/assets/css/main.css";
+  @import "views/assets/css/color-dark.css";
 </style>
